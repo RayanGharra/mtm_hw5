@@ -18,6 +18,9 @@ class Customer:
     def __str__(self):
         return f"Customer(id={self.id}, name='{self.name}', city='{self.city}', address='{self.address}')"
 
+    def __repr__(self):
+        return self.__str__()
+
 
 class Supplier:
     def __init__(self, id, name, city, address):
@@ -30,6 +33,9 @@ class Supplier:
 
     def __str__(self):
         return f"Supplier(id={self.id}, name='{self.name}', city='{self.city}', address='{self.address}')"
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class Product:
@@ -51,6 +57,12 @@ class Product:
 
     def __str__(self):
         return f"Product(id={self.id}, name='{self.name}', price={self.price}, supplier_id={self.supplier_id}, quantity={self.quantity})"
+
+    def __lt__(self, other):
+        return self.price < other.price
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class Order:
@@ -74,6 +86,9 @@ class Order:
 
     def __str__(self):
         return f"Order(id={self.id}, customer_id={self.customer_id}, product_id={self.product_id}, quantity={self.quantity}, total_price={self.total_price})"
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class MatamazonSystem:
