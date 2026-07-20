@@ -1,101 +1,79 @@
-# TODO add all imports needed here
+class InvalidIdException(Exception):
+    pass
+
+
+class InvalidPriceException(Exception):
+    pass
+
 
 class Customer:
-    """
-    Represents a customer in the Matamazon system.
+    def __init__(self, id, name, city, address):
+        if not isinstance(id, int) or id < 0:
+            raise InvalidIdException("Invalid customer ID")
+        self.id = id
+        self.name = name
+        self.city = city
+        self.address = address
 
-    Required fields (per specification):
-        - id (int): Unique non-negative integer identifier.
-        - name (str): Customer name.
-        - city (str): Customer city.
-        - address (str): Customer shipping address.
-
-    Exceptions:
-        InvalidIdException: If 'id' is not valid according to the specification.
-
-    Printing:
-        Must support printing in the following format (example):
-            Customer(id=42, name='Daniel Elgarici', city='Karmiel, address='123 Main Street')
-        Exact formatting requirements appear in the assignment PDF.
-    """
-
-    # TODO implement this class as instructed
-    pass
+    def __str__(self):
+        return f"Customer(id={self.id}, name='{self.name}', city='{self.city}', address='{self.address}')"
 
 
 class Supplier:
-    """
-    Represents a supplier in the Matamazon system.
+    def __init__(self, id, name, city, address):
+        if not isinstance(id, int) or id < 0:
+            raise InvalidIdException("Invalid supplier ID")
+        self.id = id
+        self.name = name
+        self.city = city
+        self.address = address
 
-    Required fields (per specification):
-        - id (int): Unique non-negative integer identifier.
-        - name (str): Supplier name.
-        - city (str): Warehouse city (origin city for shipping).
-        - address (str): Warehouse address.
-
-    Exceptions:
-        InvalidIdException: If 'id' is not valid according to the specification.
-
-    Printing:
-        Must support printing in the following format (example):
-            Supplier(id=42, name='Yinon Goldshtein', city='Haifa, address='32 David Rose Street')
-    """
-
-    # TODO implement this class as instructed
-    pass
+    def __str__(self):
+        return f"Supplier(id={self.id}, name='{self.name}', city='{self.city}', address='{self.address}')"
 
 
 class Product:
-    """
-    Represents a product sold on the Matamazon website.
+    def __init__(self, id, name, price, supplier_id, quantity):
+        if not isinstance(id, int) or id < 0:
+            raise InvalidIdException("Invalid product ID")
+        if not isinstance(supplier_id, int) or supplier_id < 0:
+            raise InvalidIdException("Invalid supplier ID")
+        if not isinstance(quantity, int) or quantity < 0:
+            raise InvalidIdException("Invalid quantity")
+        if not isinstance(price, (int, float)) or price < 0:
+            raise InvalidPriceException("Invalid price")
 
-    Required fields (per specification):
-        - id (int): Unique non-negative integer identifier.
-        - name (str): Product name.
-        - price (float): Non-negative price.
-        - supplier_id (int): ID of the supplier that provides the product.
-        - quantity (int): Non-negative quantity in stock.
+        self.id = id
+        self.name = name
+        self.price = float(price)
+        self.supplier_id = supplier_id
+        self.quantity = quantity
 
-    Exceptions:
-        InvalidIdException:
-            - If id/supplier_id/quantity is invalid per specification.
-        InvalidPriceException:
-            - If price is invalid (e.g., negative).
-
-    Printing:
-        Must support printing in the following format (example):
-            Product(id=101, name='Harry Potter Cushion', price=29.99, supplier_id=42, quantity=555)
-    """
-
-    # TODO implement this class as instructed
-    pass
+    def __str__(self):
+        return f"Product(id={self.id}, name='{self.name}', price={self.price}, supplier_id={self.supplier_id}, quantity={self.quantity})"
 
 
 class Order:
-    """
-    Represents a placed order.
+    def __init__(self, id, customer_id, product_id, quantity, total_price):
+        if not isinstance(id, int) or id < 0:
+            raise InvalidIdException("Invalid order ID")
+        if not isinstance(customer_id, int) or customer_id < 0:
+            raise InvalidIdException("Invalid customer ID")
+        if not isinstance(product_id, int) or product_id < 0:
+            raise InvalidIdException("Invalid product ID")
+        if not isinstance(quantity, int) or quantity < 0:
+            raise InvalidIdException("Invalid quantity")
+        if not isinstance(total_price, (int, float)) or total_price < 0:
+            raise InvalidPriceException("Invalid total price")
 
-    Required fields (per specification):
-        - id (int): Unique non-negative integer identifier (assigned by the system).
-        - customer_id (int): ID of the customer who placed the order.
-        - product_id (int): ID of the ordered product.
-        - quantity (int): Ordered quantity (non-negative integer).
-        - total_price (float): Total price for the order (non-negative).
+        self.id = id
+        self.customer_id = customer_id
+        self.product_id = product_id
+        self.quantity = quantity
+        self.total_price = float(total_price)
 
-    Exceptions:
-        InvalidIdException:
-            - If one of the ID fields is invalid.
-        InvalidPriceException:
-            - If total_price is invalid.
-
-    Printing:
-        Must support printing in the following format (example):
-            Order(id=1, customer_id=42, product_id=101, quantity=10, total_price=299.9)
-
-    """
-
-    # TODO implement this class as instructed
-    pass
+    def __str__(self):
+        return f"Order(id={self.id}, customer_id={self.customer_id}, product_id={self.product_id}, quantity={self.quantity}, total_price={self.total_price})"
 
 
 class MatamazonSystem:
