@@ -111,125 +111,117 @@ class MatamazonSystem:
     """
 
     def __init__(self):
-        """
-        Initialize an empty Matamazon system.
+        self.customers = {}
+        self.suppliers = {}
+        self.products = {}
+        self.orders = {}
+        self.next_order_id = 1
 
-        Requirements:
-            - Must be parameterless.
-            - Internal collections may be chosen freely (dict/list, etc.).
-        """
-        # TODO implement this method if needed
-        pass
 
     def register_entity(self, entity, is_customer):
-        """
-        Register a Customer or Supplier in the system.
-
-        Args:
-            entity: A Customer or Supplier object.
-            is_customer (bool): True if entity is Customer, False if entity is Supplier.
-
-        Raises:
-            InvalidIdException:
-                - If the entity ID is invalid.
-                - If the entity ID already exists in the system (note: IDs must be unique across
-                  customers AND suppliers).
-        """
-        # TODO implement this method as instructed
-        pass
+        if is_customer:
+            if entity.id in self.customers:
+                raise InvalidIdException("Customer id already exists in the system.")
+            self.customers[entity.id] = entity
+        else:
+            if entity.id in self.suppliers:
+                raise InvalidIdException("Supplier id already exists in the system.")
+            self.suppliers[entity.id] = entity
 
     def add_or_update_product(self, product):
-        """
-        Add a new product or update an existing product.
+        if product.supplier_id not in self.suppliers:
+            raise InvalidIdException("Supplier id does not exist in the system.")
 
-        Behavior:
-            - If product does not exist in system: add it.
-            - If product exists:
-                - It must belong to the same supplier as the existing one (same supplier_id),
-                  otherwise raise InvalidIdException.
-                - Update the stored product's fields according to the new product.
+        if product.id in self.products:
+            existing_product = self.products[product.id]
 
-        Args:
-            product: A Product object.
-
-        Raises:
-            InvalidIdException:
-                - If the supplier_id does not exist in the system.
-                - If attempting to update a product but supplier_id differs from the existing product.
-        """
-        # TODO implement this method as instructed
-        pass
+            if existing_product.supplier_id != product.supplier_id:
+                raise InvalidIdException("Product already exists but belongs to a different supplier.")
+            self.products[product.id] = product
+        else:
+            self.products[product.id] = product
 
     def place_order(self, customer_id, product_id, quantity=1):
-        """
-        Place an order for a product by a customer.
 
-        Args:
-            customer_id (int): Customer ID.
-            product_id (int): Product ID.
-            quantity (int, optional): Quantity to order. Defaults to 1.
+        if customer_id not in self.customers:
+            raise InvalidIdException("Customer id does not exist in the system.")
 
-        Returns:
-            str: Status message according to specification:
-                - "The order has been accepted in the system"
-                - "The product does not exist in the system"
-                - "The quantity requested for this product is greater than the quantity in stock"
+        if product_id not in self.products:
+            return "The product does not exist in the system"
 
-        Behavior:
-            - If product does not exist: return the relevant message.
-            - If quantity requested > stock: return the relevant message.
-            - Otherwise:
-                - Decrease product stock by quantity.
-                - Create a new Order with an auto-incremented system ID (starting at 1).
-                - Store the order in the system.
-                - Return success message.
+        product = self.products[product_id]
 
-        Notes:
-            - The specification assumes quantity is an integer.
-        """
-        # TODO implement this method as instructed
-        pass
+        if quantity > product.quantity:
+            return "The quantity requested for this product is greater than the quantity in stock"
+
+        total_price = product.price * quantity
+        new_order = Order(self.next_order_id, customer_id, product_id, quantity, total_price)
+
+        self.orders[self.next_order_id] = new_order
+        self.next_order_id += 1
+        product.quantity -= quantity
+
+        return "The order has been accepted in the system"
 
     def remove_object(self, _id, class_type):
-        """
-        Remove an object from the system by ID and type.
+        if not isinstance(_id, int) or id < 0:
+            raise InvalidIdException("id must be a non-negative integer.")
 
-        Args:
-            _id (int): Object ID to remove.
-            class_type (str): One of: "Customer", "Supplier", "Product", "Order"
-                              (exact casing/spelling per assignment).
+        clean_type = class_type.strip().lower()
 
-        Returns:
-            int | None:
-                - If removing an Order: return the ordered quantity of that order (to restore stock).
-                - Otherwise: no return value required.
+        if clean_type == "order":
+            if _id not in self.orders:
+                raise InvalidIdException("Order id not found.")
 
-        Raises:
-            InvalidIdException:
-                - If _id is not a valid non-negative integer.
-                - If attempting to remove a Customer/Supplier/Product that still has dependent orders
-                  in the system (i.e., orders that were not removed).
-                - Additional InvalidIdException conditions as required by specification.
-        """
-        # TODO implement this method as instructed
-        pass
+            order = self.orders[_id]
+            if order.product_id in self.products:
+                self.products[order.product_id].quantity += order.quantity
+
+            del self.orders[_id]
+            return
+
+        if clean_type == "customer":
+            if _id not in self.customers:
+                raise InvalidIdException("Customer id not found.")
+            for order in self.orders.values():
+                if order.customer_id == _id:
+                    raise InvalidIdException("Cannot delete: Customer has an active order.")
+            del self.customers[_id]
+
+        elif clean_type == "product":
+            if _id not in self.products:
+                raise InvalidIdException("Product id not found.")
+            for order in self.orders.values():
+                if order.product_id == _id:
+                    raise InvalidIdException("Cannot delete: Product is part of an active order.")
+            del self.products[_id]
+
+        elif clean_type == "supplier":
+            if _id not in self.suppliers:
+                raise InvalidIdException("Supplier id not found.")
+            for order in self.orders.values():
+                product = self.products.get(order.product_id)
+                if product and product.supplier_id == _id:
+                    raise InvalidIdException("Cannot delete: Supplier has a product in an active order.")
+            del self.suppliers[_id]
+
+        else:
+            raise InvalidIdException("Invalid class type provided.")
 
     def search_products(self, query, max_price=None):
-        """
-        Search products by query in the product name, and optionally filter by max_price.
+        matching_products = []
+        for product in self.products.values():
+            if product.quantity == 0:
+                continue
 
-        Args:
-            query (str): Product name or part of product name.
-            max_price (float, optional): If provided, only return products with price <= max_price.
+            if query not in product.name:
+                continue
 
-        Returns:
-            list[Product]:
-                - Products that match the query and have quantity != 0,
-                - Sorted by ascending price.
-                - If no matching products exist, return an empty list.
-        """
-        # TODO implement this method as instructed
-        pass
+            if max_price is not None and product.price > max_price:
+                continue
+            matching_products.append(product)
+
+        return sorted(matching_products)
 
     def export_system_to_file(self, path):
         """
