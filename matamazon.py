@@ -23,7 +23,7 @@ class Customer:
         self.address = address
 
     def __str__(self):
-        return f"Customer(id={self.id}, name='{self.name}', city='{self.city}', address='{self.address}')"
+        return f"Customer(id={self.id}, name={repr(self.name)}, city={repr(self.city)}, address={repr(self.address)})"
 
     def __repr__(self):
         return self.__str__()
@@ -39,7 +39,7 @@ class Supplier:
         self.address = address
 
     def __str__(self):
-        return f"Supplier(id={self.id}, name='{self.name}', city='{self.city}', address='{self.address}')"
+        return f"Supplier(id={self.id}, name={repr(self.name)}, city={repr(self.city)}, address={repr(self.address)})"
 
     def __repr__(self):
         return self.__str__()
@@ -63,7 +63,7 @@ class Product:
         self.quantity = quantity
 
     def __str__(self):
-        return f"Product(id={self.id}, name='{self.name}', price={self.price}, supplier_id={self.supplier_id}, quantity={self.quantity})"
+        return f"Product(id={self.id}, name={repr(self.name)}, price={self.price}, supplier_id={self.supplier_id}, quantity={self.quantity})"
 
     def __lt__(self, other):
         return self.price < other.price
@@ -388,7 +388,7 @@ def main():
         print(USAGE_MESSAGE, file=sys.stderr)
         exit(1)
 
-    try:
+   # try:
         if "-s" in args:
             system = load_system_from_file(args["-s"])
         else:
@@ -405,9 +405,9 @@ def main():
         if "-os" in args:
             system.export_system_to_file(args["-os"])
 
-    except Exception:
-        print(GENERAL_ERROR_MESSAGE)
-        exit(1)
+   # except Exception:
+   #     print(GENERAL_ERROR_MESSAGE)
+   #     exit(1)
 
 
 if __name__ == "__main__":
