@@ -388,7 +388,7 @@ def main():
         print(USAGE_MESSAGE, file=sys.stderr)
         exit(1)
 
-   # try:
+    try:
         if "-s" in args:
             system = load_system_from_file(args["-s"])
         else:
@@ -405,9 +405,9 @@ def main():
         if "-os" in args:
             system.export_system_to_file(args["-os"])
 
-   # except Exception:
-   #     print(GENERAL_ERROR_MESSAGE)
-   #     exit(1)
+    except Exception:
+        print(GENERAL_ERROR_MESSAGE)
+        exit(1)
 
 
 if __name__ == "__main__":
