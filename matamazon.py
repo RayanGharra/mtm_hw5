@@ -370,6 +370,7 @@ def _process_log_file(system, log_path):
             if not tokens:
                 continue
             command = tokens[0]
+        try:
             if command == "register":
                 _handle_register(system, tokens)
             elif command == "add" or command == "update":
@@ -380,6 +381,8 @@ def _process_log_file(system, log_path):
                 _handle_remove(system, tokens)
             elif command == "search":
                 _handle_search(system, tokens)
+        except Exception:
+            pass
 
 
 def main():
