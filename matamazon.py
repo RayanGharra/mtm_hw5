@@ -9,6 +9,9 @@ class InvalidIdException(Exception):
 class InvalidPriceException(Exception):
     pass
 
+class InvalidQuantityException(Exception):
+    pass
+
 
 class Customer:
     def __init__(self, id, name, city, address):
@@ -131,12 +134,12 @@ class MatamazonSystem:
             raise InvalidIdException("Customer id does not exist in the system.")
 
         if product_id not in self.products:
-            return "The product does not exist in the system"
+            raise InvalidIdException("The product does not exist in the system.")
 
         product = self.products[product_id]
-
         if quantity > product.quantity:
-            return "The quantity requested for this product is greater than the quantity in stock"
+            raise InvalidQuantityException(
+                "The quantity requested for this product is greater than the quantity in stock.")
 
         total_price = product.price * quantity
         new_order = Order(self.next_order_id, customer_id, product_id, quantity, total_price)
@@ -187,6 +190,11 @@ class MatamazonSystem:
                 product = self.products.get(order.product_id)
                 if product and product.supplier_id == _id:
                     raise InvalidIdException("Cannot delete: Supplier has a product in an active order.")
+
+            products_to_delete = [p_id for p_id, p in self.products.items() if p.supplier_id == _id]
+            for p_id in products_to_delete:
+                del self.products[p_id]
+
             del self.suppliers[_id]
 
         else:
