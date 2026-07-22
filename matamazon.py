@@ -1,3 +1,7 @@
+import sys
+import json
+
+
 class InvalidIdException(Exception):
     pass
 
@@ -92,31 +96,12 @@ class Order:
 
 
 class MatamazonSystem:
-    """
-    Main system class that stores and manages customers, suppliers, products and orders.
-
-    The system must support:
-        - Registering customers/suppliers (with unique IDs across both types).
-        - Adding/updating products (must validate supplier existence).
-        - Placing orders (validate product existence and stock).
-        - Removing objects by ID and type (with dependency constraints).
-        - Searching products by name/query and optional max price.
-        - Exporting system state to a text file (customers/suppliers/products only).
-        - Exporting orders to JSON grouped by supplier origin city.
-
-    Notes:
-        - The specification does not require specific internal fields. Any data structures are allowed,
-          as long as the behaviors match the spec.
-        - A parameterless constructor is required.
-    """
-
     def __init__(self):
         self.customers = {}
         self.suppliers = {}
         self.products = {}
         self.orders = {}
         self.next_order_id = 1
-
 
     def register_entity(self, entity, is_customer):
         if is_customer:
@@ -142,7 +127,6 @@ class MatamazonSystem:
             self.products[product.id] = product
 
     def place_order(self, customer_id, product_id, quantity=1):
-
         if customer_id not in self.customers:
             raise InvalidIdException("Customer id does not exist in the system.")
 
@@ -164,7 +148,7 @@ class MatamazonSystem:
         return "The order has been accepted in the system"
 
     def remove_object(self, _id, class_type):
-        if not isinstance(_id, int) or id < 0:
+        if not isinstance(_id, int) or _id < 0:
             raise InvalidIdException("id must be a non-negative integer.")
 
         clean_type = class_type.strip().lower()
@@ -224,68 +208,199 @@ class MatamazonSystem:
         return sorted(matching_products)
 
     def export_system_to_file(self, path):
-        """
-        Export system state (customers, suppliers, products) to a text file.
-
-        Args:
-            path (str): Output file path.
-
-        Behavior:
-            - Write each object on its own line, using the object's print/str representation.
-            - Orders must NOT be included.
-            - No constraint on the ordering of objects in the output.
-
-        Raises:
-            OSError (or any file-open exception): Must be propagated to the caller.
-        """
-        # TODO implement this method as instructed
-        pass
+        with open(path, "w") as out_file:
+            for customer in self.customers.values():
+                print(customer, file=out_file)
+            for supplier in self.suppliers.values():
+                print(supplier, file=out_file)
+            for product in self.products.values():
+                print(product, file=out_file)
 
     def export_orders(self, out_file):
-        """
-        Export orders in JSON format grouped by origin city.
+        orders_by_city = {}
+        for order in self.orders.values():
+            product = self.products[order.product_id]
+            supplier = self.suppliers[product.supplier_id]
+            city = supplier.city
+            if city not in orders_by_city:
+                orders_by_city[city] = []
+            orders_by_city[city].append(str(order))
 
-        Args:
-            out_file (file-like)
-
-        Behavior (per specification):
-            - Produce a JSON object where:
-                - Keys: origin city (supplier city) for each order.
-                - Values: list of strings representing orders (format as specified in section 4.1.4).
-            - Order lists can be in any order.
-            - No requirement on key ordering.
-
-        Raises:
-            Any exception during writing: Must be propagated to the caller.
-
-        Notes:
-            - The order origin city is the supplier city of the ordered product.
-        """
-        # TODO implement this method as instructed
-        pass
+        json.dump(orders_by_city, out_file)
 
 
 def load_system_from_file(path):
-    """
-    Load a MatamazonSystem from an input file.
+    customers = []
+    suppliers = []
+    products = []
 
-    Args:
-        path (str): Path to a text file containing customers, suppliers and products.
+    with open(path, "r") as in_file:
+        lines = in_file.readlines()
 
-    Returns:
-        MatamazonSystem: Initialized system with the data found in the file.
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not line:
+            continue
 
-    Behavior:
-        - The file lines contain objects in the format produced by export_system_to_file (section 4.2).
-        - Lines may appear in any order (e.g., product lines can appear before supplier lines).
-        - Illegal lines may be ignored.
-        - If an exception occurs during the creation of any required object due to invalid data,
-          the function should stop and propagate the exception (as specified).
+        try:
+            obj = eval(line)
+        except (InvalidIdException, InvalidPriceException):
+            raise
+        except Exception:
+            continue
 
-    Notes:
-        - The assignment hints that eval() may be used.
-    """
-    # TODO implement this function as instructed
-    pass
+        if isinstance(obj, Customer):
+            customers.append(obj)
+        elif isinstance(obj, Supplier):
+            suppliers.append(obj)
+        elif isinstance(obj, Product):
+            products.append(obj)
 
-# TODO all the main part here
+    system = MatamazonSystem()
+
+    for customer in customers:
+        system.register_entity(customer, True)
+    for supplier in suppliers:
+        system.register_entity(supplier, False)
+    for product in products:
+        system.add_or_update_product(product)
+
+    return system
+
+
+USAGE_MESSAGE = "Usage: python3 matamazon.py -l <matamazon_log> -s <matamazon_system> -o <output_file> -os <out_matamazon_system>"
+GENERAL_ERROR_MESSAGE = "The matamazon script has encountered an error"
+
+VALID_FLAGS = ("-l", "-s", "-o", "-os")
+REQUIRED_FLAGS = ("-l",)
+
+
+def _tokenize(line):
+    tokens = []
+    current = ""
+    for ch in line:
+        if ch.isspace():
+            if current != "":
+                tokens.append(current)
+                current = ""
+        else:
+            current += ch
+    if current != "":
+        tokens.append(current)
+    return tokens
+
+
+def _parse_cli_args(argv):
+    args = {}
+    i = 0
+    while i < len(argv):
+        flag = argv[i]
+        if flag not in VALID_FLAGS or flag in args or i + 1 >= len(argv):
+            return None
+        args[flag] = argv[i + 1]
+        i += 2
+
+    for required in REQUIRED_FLAGS:
+        if required not in args:
+            return None
+    return args
+
+
+def _to_text(token):
+    return token.replace("_", " ")
+
+
+def _handle_register(system, tokens):
+    entity_type = tokens[1].lower()
+    entity_id = int(tokens[2])
+    name = _to_text(tokens[3])
+    city = _to_text(tokens[4])
+    address = _to_text(tokens[5])
+    if entity_type == "customer":
+        system.register_entity(Customer(entity_id, name, city, address), True)
+    elif entity_type == "supplier":
+        system.register_entity(Supplier(entity_id, name, city, address), False)
+
+
+def _handle_add_or_update(system, tokens):
+    product_id = int(tokens[1])
+    name = _to_text(tokens[2])
+    price = float(tokens[3])
+    supplier_id = int(tokens[4])
+    quantity = int(tokens[5])
+    system.add_or_update_product(Product(product_id, name, price, supplier_id, quantity))
+
+
+def _handle_order(system, tokens):
+    customer_id = int(tokens[1])
+    product_id = int(tokens[2])
+    if len(tokens) > 3:
+        system.place_order(customer_id, product_id, int(tokens[3]))
+    else:
+        system.place_order(customer_id, product_id)
+
+
+def _handle_remove(system, tokens):
+    class_type = tokens[1]
+    obj_id = int(tokens[2])
+    system.remove_object(obj_id, class_type)
+
+
+def _handle_search(system, tokens):
+    query = _to_text(tokens[1])
+    if len(tokens) > 2:
+        results = system.search_products(query, float(tokens[2]))
+    else:
+        results = system.search_products(query)
+    print(results)
+
+
+def _process_log_file(system, log_path):
+    with open(log_path, "r") as log_file:
+        for raw_line in log_file:
+            tokens = _tokenize(raw_line)
+            if not tokens:
+                continue
+            command = tokens[0]
+            if command == "register":
+                _handle_register(system, tokens)
+            elif command == "add" or command == "update":
+                _handle_add_or_update(system, tokens)
+            elif command == "order":
+                _handle_order(system, tokens)
+            elif command == "remove":
+                _handle_remove(system, tokens)
+            elif command == "search":
+                _handle_search(system, tokens)
+
+
+def main():
+    args = _parse_cli_args(sys.argv[1:])
+    if args is None:
+        print(USAGE_MESSAGE, file=sys.stderr)
+        exit(1)
+
+    try:
+        if "-s" in args:
+            system = load_system_from_file(args["-s"])
+        else:
+            system = MatamazonSystem()
+
+        _process_log_file(system, args["-l"])
+
+        if "-o" in args:
+            with open(args["-o"], "w") as out_file:
+                system.export_orders(out_file)
+        else:
+            system.export_orders(sys.stdout)
+
+        if "-os" in args:
+            system.export_system_to_file(args["-os"])
+
+    except Exception:
+        print(GENERAL_ERROR_MESSAGE)
+        exit(1)
+
+
+if __name__ == "__main__":
+    main()
